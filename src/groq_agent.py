@@ -1,11 +1,15 @@
 import os
 from typing import Optional, Type
 from pydantic import BaseModel, Field
-from langchain.tools import BaseTool, Tool
+
+# FIXED IMPORTS for langchain 0.1.0+
+from langchain.tools import BaseTool
+from langchain_core.tools import Tool  # NEW LOCATION
 from langchain.agents import initialize_agent, AgentType
 from langchain_groq import ChatGroq
 from langchain.prompts import MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
+
 import streamlit as st
 
 class MedicalAnalysisInput(BaseModel):
@@ -78,94 +82,4 @@ class HealthTipsTool(BaseTool):
         ]
         return "\n".join(tips)
 
-class GroqMedicalAgent:
-    def __init__(self):
-        # Get API key from Streamlit secrets or env
-        api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-        
-        if not api_key:
-            raise ValueError("GROQ_API_KEY not found!")
-        
-        # Initialize Groq LLM - FASTEST inference available!
-        self.llm = ChatGroq(
-            api_key=api_key,
-            model_name="mixtral-8x7b-32768",  # Fast, capable, free tier
-            temperature=0.2,
-            max_tokens=4096
-        )
-        
-        # Alternative models:
-        # "llama2-70b-4096" - Meta's Llama 2
-        # "gemma-7b-it" - Google's Gemma
-        
-        # Create tools
-        self.tools = [
-            Tool(
-                name="medical_analyzer",
-                func=MedicalAnalysisTool()._run,
-                description="Comprehensive medical report analysis with structured output"
-            ),
-            Tool(
-                name="health_advisor",
-                func=HealthTipsTool()._run,
-                description="Quick health tips and lifestyle recommendations"
-            )
-        ]
-        
-        # Initialize agent with memory
-        self.memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True
-        )
-        
-        self.agent = initialize_agent(
-            tools=self.tools,
-            llm=self.llm,
-            agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
-            memory=self.memory,
-            verbose=True,
-            handle_parsing_errors=True,
-            max_iterations=3
-        )
-    
-    def analyze_report(self, report_text: str) -> str:
-        """Run agent analysis on medical report"""
-        prompt = f"""
-        Analyze this medical report comprehensively. Use the medical_analyzer tool 
-        for detailed analysis, and health_advisor for additional tips.
-        
-        Report Text:
-        {report_text}
-        
-        Provide a thorough, structured analysis suitable for a patient to understand.
-        """
-        
-        try:
-            response = self.agent.run(prompt)
-            return response
-        except Exception as e:
-            return f"Analysis error: {str(e)}. Please try again."
-    
-    def quick_analysis(self, report_text: str) -> str:
-        """Fast, direct LLM analysis without agent overhead"""
-        direct_prompt = f"""
-        Act as a medical report analyzer. Provide a quick, clear summary:
-        
-        1. What tests were done?
-        2. Key numbers/values found
-        3. Any red flags (explain simply)
-        4. One practical health tip
-        
-        Report: {report_text}
-        """
-        
-        response = self.llm.predict(direct_prompt)
-        return response
-    
-    def chat_followup(self, question: str) -> str:
-        """Allow follow-up questions about the report"""
-        try:
-            response = self.agent.run(f"Regarding the previous medical report: {question}")
-            return response
-        except Exception as e:
-            return f"Error: {str(e)}"
+class GroqMedicalAgent
