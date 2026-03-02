@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 from langchain.tools import BaseTool
 from langchain_core.tools import Tool
-from langchain.agents import AgentExecutor, create_react_agent
+from langchain.agents import create_react_agent
+from langchain.agents.agent import AgentExecutor
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -202,7 +203,7 @@ Act as a medical report analyzer. Provide a quick, clear summary:
 Report: {report_text}
 """
         
-        response = self.llm.predict(direct_prompt)
+        response = self.llm.invoke(direct_prompt)
         return response
     
     def chat_followup(self, question: str) -> str:
