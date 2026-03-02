@@ -1,13 +1,13 @@
 import os
-from typing import Optional, Type
+from typing import Type
 from pydantic import BaseModel, Field
 
-# FIXED IMPORTS for langchain 0.1.0+
 from langchain.tools import BaseTool
 from langchain_core.tools import Tool
-from langchain.agents import initialize_agent, AgentType
+from langchain.agents import AgentExecutor, create_react_agent
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 import streamlit as st
 
@@ -103,7 +103,7 @@ class GroqMedicalAgent:
         if not api_key:
             raise ValueError("GROQ_API_KEY not found!")
         
-        # Initialize Groq LLM - FASTEST inference available!
+        # Initialize Groq LLM
         self.llm = ChatGroq(
             api_key=api_key,
             model_name="mixtral-8x7b-32768",
@@ -125,16 +125,54 @@ class GroqMedicalAgent:
             )
         ]
         
-        # Initialize agent with memory
+        # Initialize memory
         self.memory = ConversationBufferMemory(
             memory_key="chat_history",
             return_messages=True
         )
         
-        self.agent = initialize_agent(
-            tools=self.tools,
+        # Create agent using NEW method (create_react_agent)
+        system_prompt = """You are a helpful medical report analyzer. 
+        Use the available tools to analyze medical reports and provide health advice.
+        Always be thorough and provide structured output.
+        
+        You have access to the following tools:
+        {tools}
+        
+        Use the following format:
+        
+        Question: the input question you must answer
+        Thought: you should always think about what to do
+        Action: the action to take, should be one of [{tool_names}]
+        Action Input: the input to the action
+        Observation: the result of the action
+        ... (this Thought/Action/Action Input/Observation can repeat N times)
+        Thought: I now know the final answer
+        Final Answer: the final answer to the original input question
+        
+        Begin!
+        
+        Question: {input}
+        Thought:{agent_scratchpad}"""
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ])
+        
+        # Create agent with NEW method
+        agent = create_react_agent(
             llm=self.llm,
-            agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION,
+            tools=self.tools,
+            prompt=prompt
+        )
+        
+        # Create agent executor
+        self.agent_executor = AgentExecutor(
+            agent=agent,
+            tools=self.tools,
             memory=self.memory,
             verbose=True,
             handle_parsing_errors=True,
@@ -143,19 +181,11 @@ class GroqMedicalAgent:
     
     def analyze_report(self, report_text: str) -> str:
         """Run agent analysis on medical report"""
-        prompt = f"""
-        Analyze this medical report comprehensively. Use the medical_analyzer tool 
-        for detailed analysis, and health_advisor for additional tips.
-        
-        Report Text:
-        {report_text}
-        
-        Provide a thorough, structured analysis suitable for a patient to understand.
-        """
-        
         try:
-            response = self.agent.run(prompt)
-            return response
+            response = self.agent_executor.invoke({
+                "input": f"Analyze this medical report comprehensively: {report_text}"
+            })
+            return response["output"]
         except Exception as e:
             return f"Analysis error: {str(e)}. Please try again."
     
@@ -178,7 +208,9 @@ class GroqMedicalAgent:
     def chat_followup(self, question: str) -> str:
         """Allow follow-up questions about the report"""
         try:
-            response = self.agent.run(f"Regarding the previous medical report: {question}")
-            return response
+            response = self.agent_executor.invoke({
+                "input": f"Regarding the previous medical report: {question}"
+            })
+            return response["output"]
         except Exception as e:
             return f"Error: {str(e)}"
