@@ -134,27 +134,27 @@ class GroqMedicalAgent:
         
         # Create agent prompt
         system_prompt = """You are a helpful medical report analyzer. 
-Use the available tools to analyze medical reports and provide health advice.
-Always be thorough and provide structured output.
+        Use the available tools to analyze medical reports and provide health advice.
+        Always be thorough and provide structured output.
 
-You have access to the following tools:
-{tools}
+        You have access to the following tools:
+        {tools}
 
-Use the following format:
+        Use the following format:
 
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
+        Question: the input question you must answer
+        Thought: you should always think about what to do
+        Action: the action to take, should be one of [{tool_names}]
+        Action Input: the input to the action
+        Observation: the result of the action
+        ... (this Thought/Action/Action Input/Observation can repeat N times)
+        Thought: I now know the final answer
+        Final Answer: the final answer to the original input question
 
-Begin!
+        Begin!
 
-Question: {input}
-Thought:{agent_scratchpad}"""
+        Question: {input}
+        Thought:{agent_scratchpad}"""
         
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
@@ -193,15 +193,15 @@ Thought:{agent_scratchpad}"""
     def quick_analysis(self, report_text: str) -> str:
         """Fast, direct LLM analysis without agent overhead"""
         direct_prompt = f"""
-Act as a medical report analyzer. Provide a quick, clear summary:
+        Act as a medical report analyzer. Provide a quick, clear summary:
 
-1. What tests were done?
-2. Key numbers/values found
-3. Any red flags (explain simply)
-4. One practical health tip
+        1. What tests were done?
+        2. Key numbers/values found
+        3. Any red flags (explain simply)
+        4. One practical health tip
 
-Report: {report_text}
-"""
+        Report: {report_text}
+        """
         
         response = self.llm.invoke(direct_prompt)
         return response
