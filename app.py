@@ -14,7 +14,9 @@ st.set_page_config(
 )
 
 # Import modules
-from src.ocr_engine import OCREngine
+from src.ocr_tesseract import TesseractOCR
+
+#from src.ocr_engine import OCREngine
 from src.groq_agent import GroqMedicalAgent
 
 # Custom CSS for modern UI
@@ -170,8 +172,12 @@ def main():
         st.stop()
     
     # Initialize engines
+    # if not st.session_state.ocr:
+    #     st.session_state.ocr = OCREngine()
+
+    # Initialize engines
     if not st.session_state.ocr:
-        st.session_state.ocr = OCREngine()
+    st.session_state.ocr = TesseractOCR()
     
     if not st.session_state.agent:
         try:
@@ -229,8 +235,10 @@ def process_image(image, mode="full"):
     # Step 1: OCR
     start_time = time.time()
     
-    with st.spinner("🔤 Extracting text with EasyOCR..."):
-        st.session_state.extracted_text = st.session_state.ocr.extract(image)
+    # with st.spinner("🔤 Extracting text with EasyOCR..."):
+    #     st.session_state.extracted_text = st.session_state.ocr.extract(image)
+    with st.spinner("🔤 Extracting text with Tesseract..."):
+    st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
     
     if not st.session_state.extracted_text:
         st.error("❌ Could not read text. Try a clearer image.")

@@ -1,7 +1,8 @@
 
 
 groq
-easyocr
+#easyocr
+pytesseract
 Pillow
 numpy
 langchainhub
