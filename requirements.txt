@@ -5,7 +5,7 @@ numpy
 langchainhub
 
 langchain==0.2.0
-langchain-core==0.2.0
+langchain-core==0.2.2
 langchain-groq==0.1.6
 streamlit==1.32.2
 pydantic==2.7.0
