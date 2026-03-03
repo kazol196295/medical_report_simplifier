@@ -1,367 +1,955 @@
+# import streamlit as st
+# from PIL import Image
+# import os
+# import io
+# import base64
+# import time
+
+# # Page config - MUST be first
+# st.set_page_config(
+#     page_title="⚡ Medical Agent AI",
+#     page_icon="🏥",
+#     layout="wide",
+#     initial_sidebar_state="expanded"
+# )
+
+# # Import modules
+# from src.ocr_tesseract import TesseractOCR
+
+# #from src.ocr_engine import OCREngine
+# from src.groq_agent import GroqMedicalAgent
+
+# # Custom CSS for modern UI
+# st.markdown("""
+#     <style>
+#     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
+#     * { font-family: 'Inter', sans-serif; }
+    
+#     .main-header {
+#         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+#         -webkit-background-clip: text;
+#         -webkit-text-fill-color: transparent;
+#         font-size: 3rem;
+#         font-weight: 700;
+#         text-align: center;
+#         margin-bottom: 0.5rem;
+#     }
+    
+#     .speed-badge {
+#         background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+#         color: white;
+#         padding: 8px 20px;
+#         border-radius: 25px;
+#         font-weight: 600;
+#         display: inline-block;
+#         animation: pulse 2s infinite;
+#     }
+    
+#     @keyframes pulse {
+#         0%, 100% { opacity: 1; }
+#         50% { opacity: 0.8; }
+#     }
+    
+#     .metric-card {
+#         background: white;
+#         padding: 20px;
+#         border-radius: 15px;
+#         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+#         border-left: 5px solid #667eea;
+#     }
+    
+#     .stButton>button {
+#         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+#         color: white;
+#         border: none;
+#         padding: 15px 30px;
+#         border-radius: 30px;
+#         font-weight: 600;
+#         transition: all 0.3s;
+#     }
+    
+#     .stButton>button:hover {
+#         transform: translateY(-2px);
+#         box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+#     }
+    
+#     .report-container {
+#         background: #f8f9fa;
+#         padding: 25px;
+#         border-radius: 15px;
+#         border: 1px solid #e9ecef;
+#     }
+    
+#     .chat-message {
+#         padding: 15px;
+#         border-radius: 15px;
+#         margin: 10px 0;
+#     }
+    
+#     .user-message {
+#         background: #667eea;
+#         color: white;
+#         margin-left: 20%;
+#     }
+    
+#     .ai-message {
+#         background: #f8f9fa;
+#         border: 1px solid #dee2e6;
+#         margin-right: 20%;
+#     }
+#     </style>
+# """, unsafe_allow_html=True)
+
+# # Session state
+# def init_state():
+#     defaults = {
+#         'ocr': None,
+#         'agent': None,
+#         'extracted_text': None,
+#         'analysis': None,
+#         'chat_history': []
+#     }
+#     for k, v in defaults.items():
+#         if k not in st.session_state:
+#             st.session_state[k] = v
+
+# def main():
+#     init_state()
+    
+#     # Header
+#     st.markdown('<h1 class="main-header">⚡ Medical Agent AI</h1>', unsafe_allow_html=True)
+#     st.markdown(
+#         '<div style="text-align: center;"><span class="speed-badge">🚀 Powered by Groq • 800+ tokens/sec • Agent AI</span></div>',
+#         unsafe_allow_html=True
+#     )
+#     st.markdown("---")
+    
+#     # Sidebar
+#     with st.sidebar:
+#         st.header("🔐 API Configuration")
+        
+#         # Groq API Key
+#         groq_key = st.text_input(
+#             "Groq API Key",
+#             type="password",
+#             value=st.secrets.get("GROQ_API_KEY", ""),
+#             help="Get free key at console.groq.com"
+#         )
+        
+#         if groq_key:
+#             os.environ["GROQ_API_KEY"] = groq_key
+#             st.success("✅ Groq API connected!")
+        
+#         st.markdown("---")
+#         st.header("📊 Stats")
+        
+#         if st.session_state.extracted_text:
+#             st.metric("Characters Extracted", len(st.session_state.extracted_text))
+#             st.metric("Analysis Speed", "~2 seconds")
+        
+#         st.markdown("---")
+#         st.info("""
+#         **🔒 Privacy First**
+#         - No data stored permanently
+#         - Processing happens in real-time
+#         - HIPAA-aware AI handling
+#         """)
+        
+#         st.markdown("---")
+#         st.caption("Built with LangChain + Groq + Streamlit")
+    
+#     # Check API key
+#     if not os.getenv("GROQ_API_KEY"):
+#         st.warning("⚠️ Please add your Groq API key in the sidebar")
+#         st.markdown("""
+#         ### How to get FREE Groq API Key:
+#         1. Visit [console.groq.com](https://console.groq.com)
+#         2. Sign up with email/GitHub
+#         3. Create API key (free tier includes generous credits)
+#         4. Paste it in the sidebar
+#         """)
+#         st.stop()
+    
+#     # Initialize engines
+#     # if not st.session_state.ocr:
+#     #     st.session_state.ocr = OCREngine()
+
+#     # Initialize engines
+#     if not st.session_state.ocr:
+#         st.session_state.ocr = TesseractOCR()
+    
+#     if not st.session_state.agent:
+#         try:
+#             st.session_state.agent = GroqMedicalAgent()
+#         except Exception as e:
+#             st.error(f"Failed to initialize AI Agent: {str(e)}")
+#             st.stop()
+    
+#     # Main layout
+#     col1, col2 = st.columns([1, 1])
+    
+#     with col1:
+#         st.subheader("📤 Upload Medical Report")
+        
+#         uploaded = st.file_uploader(
+#             "Drop image here (JPG, PNG, JPEG)",
+#             type=['jpg', 'jpeg', 'png', 'bmp'],
+#             help="For best results, use clear, well-lit images"
+#         )
+        
+#         if uploaded:
+#             image = Image.open(uploaded)
+            
+#             # Smart resize for display
+#             display_img = image.copy()
+#             if display_img.width > 600:
+#                 ratio = 600 / display_img.width
+#                 display_img = display_img.resize(
+#                     (600, int(display_img.height * ratio)), 
+#                     Image.Resampling.LANCZOS
+#                 )
+            
+#             st.image(display_img, caption="📸 Uploaded Report", use_column_width=True)
+            
+#             # Action buttons
+#             c1, c2 = st.columns(2)
+            
+#             with c1:
+#                 if st.button("🔍 Full Agent Analysis", use_container_width=True):
+#                     process_image(image, mode="full")
+            
+#             with c2:
+#                 if st.button("⚡ Quick Analysis", use_container_width=True):
+#                     process_image(image, mode="quick")
+    
+#     with col2:
+#         if st.session_state.analysis:
+#             display_results()
+#         else:
+#             display_welcome()
+
+# def process_image(image, mode="full"):
+#     """Process image with OCR and AI"""
+    
+#     # Step 1: OCR
+#     start_time = time.time()
+    
+#     # with st.spinner("🔤 Extracting text with EasyOCR..."):
+#     #     st.session_state.extracted_text = st.session_state.ocr.extract(image)
+#     with st.spinner("🔤 Extracting text with Tesseract..."):
+#         st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
+    
+#     if not st.session_state.extracted_text:
+#         st.error("❌ Could not read text. Try a clearer image.")
+#         return
+    
+#     ocr_time = time.time() - start_time
+    
+#     # Step 2: AI Analysis
+#     with st.spinner(f"🤖 Running {'Agent' if mode == 'full' else 'Quick'} Analysis on Groq..."):
+#         if mode == "full":
+#             st.session_state.analysis = st.session_state.agent.analyze_report(
+#                 st.session_state.extracted_text
+#             )
+#         else:
+#             st.session_state.analysis = st.session_state.agent.quick_analysis(
+#                 st.session_state.extracted_text
+#             )
+    
+#     total_time = time.time() - start_time
+    
+#     st.success(f"✅ Done in {total_time:.1f}s (OCR: {ocr_time:.1f}s, AI: {total_time-ocr_time:.1f}s)")
+#     st.rerun()
+
+# def display_results():
+#     """Display analysis results"""
+#     st.subheader("📋 AI Analysis Results")
+    
+#     # Tabs for different views
+#     tabs = st.tabs(["🧠 Agent Analysis", "💬 Chat", "📝 Raw Data"])
+    
+#     with tabs[0]:
+#         st.markdown('<div class="report-container">', unsafe_allow_html=True)
+#         st.markdown(st.session_state.analysis)
+#         st.markdown('</div>', unsafe_allow_html=True)
+        
+#         # Action buttons
+#         c1, c2, c3 = st.columns(3)
+#         with c1:
+#             if st.button("💾 Save Analysis"):
+#                 st.download_button(
+#                     "Download Report",
+#                     st.session_state.analysis,
+#                     file_name="medical_analysis.txt"
+#                 )
+#         with c2:
+#             if st.button("🔄 Re-analyze"):
+#                 st.session_state.analysis = None
+#                 st.rerun()
+#         with c3:
+#             if st.button("🗑️ Clear"):
+#                 st.session_state.extracted_text = None
+#                 st.session_state.analysis = None
+#                 st.rerun()
+    
+#     with tabs[1]:
+#         st.markdown("### 💬 Ask Follow-up Questions")
+#         st.caption("Chat with the AI agent about your report")
+        
+#         # Display chat history
+#         for msg in st.session_state.chat_history:
+#             role, content = msg
+#             css_class = "user-message" if role == "user" else "ai-message"
+#             st.markdown(f'<div class="chat-message {css_class}">{content}</div>', 
+#                        unsafe_allow_html=True)
+        
+#         # Input for new question
+#         question = st.text_input("Your question:", placeholder="e.g., What does high hemoglobin mean?")
+        
+#         if question and st.button("Send", key="chat_send"):
+#             st.session_state.chat_history.append(("user", question))
+            
+#             with st.spinner("Agent thinking..."):
+#                 response = st.session_state.agent.chat_followup(question)
+            
+#             st.session_state.chat_history.append(("ai", response))
+#             st.rerun()
+    
+#     with tabs[2]:
+#         st.text_area("Extracted OCR Text", st.session_state.extracted_text, height=300)
+        
+#         # Show metrics
+#         st.markdown("### 📊 Processing Metrics")
+#         col1, col2, col3 = st.columns(3)
+#         col1.metric("Text Length", len(st.session_state.extracted_text))
+#         col2.metric("Words", len(st.session_state.extracted_text.split()))
+#         col3.metric("Model", "llama-3.3-70b-versatile")
+
+# def display_welcome():
+#     """Show welcome screen"""
+#     st.info("👈 Upload a medical report to get started")
+    
+#     with st.expander("🎯 What This Agent Can Do"):
+#         st.markdown("""
+#         ### 🧠 AI Agent Capabilities:
+        
+#         1. **📋 Comprehensive Analysis**
+#            - Identifies test types (Blood, Urine, Imaging, etc.)
+#            - Extracts numerical values automatically
+#            - Flags abnormal results with explanations
+        
+#         2. **💡 Smart Recommendations**
+#            - Diet suggestions based on results
+#            - Lifestyle modifications
+#            - Exercise recommendations
+        
+#         3. **💬 Interactive Chat**
+#            - Ask follow-up questions
+#            - Clarify medical terms
+#            - Get second opinions on specific values
+        
+#         4. **⚡ Ultra-Fast Processing**
+#            - Groq LPU (Language Processing Unit)
+#            - 800+ tokens/second inference
+#            - Sub-second responses
+#         """)
+    
+#     with st.expander("🔒 Privacy & Safety"):
+#         st.markdown("""
+#         - ✅ No data stored on servers
+#         - ✅ Processing happens in real-time
+#         - ✅ No training on your data
+#         - ⚠️ Always consult doctors for medical decisions
+#         """)
+
+# if __name__ == "__main__":
+#     main()
+
+
+
+
+
 import streamlit as st
 from PIL import Image
 import os
-import io
-import base64
 import time
 
-# Page config - MUST be first
+# ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="⚡ Medical Agent AI",
-    page_icon="🏥",
+    page_title="Medical Report Assistant",
+    page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Import modules
+# ── Imports ────────────────────────────────────────────────────────────────────
 from src.ocr_tesseract import TesseractOCR
-
-#from src.ocr_engine import OCREngine
 from src.groq_agent import GroqMedicalAgent
 
-# Custom CSS for modern UI
+# ── Design System CSS ──────────────────────────────────────────────────────────
 st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    
-    * { font-family: 'Inter', sans-serif; }
-    
-    .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 3rem;
-        font-weight: 700;
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
-    
-    .speed-badge {
-        background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
-        color: white;
-        padding: 8px 20px;
-        border-radius: 25px;
-        font-weight: 600;
-        display: inline-block;
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.8; }
-    }
-    
-    .metric-card {
-        background: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-left: 5px solid #667eea;
-    }
-    
-    .stButton>button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 30px;
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-    
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-    }
-    
-    .report-container {
-        background: #f8f9fa;
-        padding: 25px;
-        border-radius: 15px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .chat-message {
-        padding: 15px;
-        border-radius: 15px;
-        margin: 10px 0;
-    }
-    
-    .user-message {
-        background: #667eea;
-        color: white;
-        margin-left: 20%;
-    }
-    
-    .ai-message {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        margin-right: 20%;
-    }
-    </style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+  --navy:        #0B1B2B;
+  --navy-mid:    #132337;
+  --navy-light:  #1C3352;
+  --teal:        #00C9A7;
+  --teal-dim:    #00A38A;
+  --sky:         #38BDF8;
+  --amber:       #F59E0B;
+  --rose:        #F43F5E;
+  --surface:     #162840;
+  --surface2:    #1E3452;
+  --border:      rgba(0,201,167,0.18);
+  --text:        #E2EBF5;
+  --text-muted:  #7A9BB5;
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   22px;
+  --shadow:      0 8px 32px rgba(0,0,0,0.35);
+}
+
+/* ── Global reset ── */
+html, body, [class*="css"] {
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+}
+
+/* hide default streamlit chrome */
+#MainMenu, footer, header { visibility: hidden; }
+.block-container { padding: 1.5rem 1.5rem 3rem !important; max-width: 1400px !important; }
+
+/* ── Sidebar ── */
+section[data-testid="stSidebar"] {
+  background: var(--navy) !important;
+  border-right: 1px solid var(--border);
+}
+section[data-testid="stSidebar"] * { color: var(--text) !important; }
+section[data-testid="stSidebar"] .stTextInput input {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── Main background ── */
+.stApp { background: var(--navy-mid) !important; }
+
+/* ── Logo block ── */
+.logo-block {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px 0 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.logo-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--sky) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,201,167,0.3);
+}
+.logo-text { line-height: 1.2; }
+.logo-text span:first-child {
+  display: block;
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem; color: var(--teal);
+}
+.logo-text span:last-child {
+  display: block; font-size: 0.72rem;
+  color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* ── Page title ── */
+.page-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  color: var(--text);
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+.page-title span { color: var(--teal); }
+.page-subtitle {
+  font-size: 0.9rem; color: var(--text-muted);
+  margin-bottom: 28px; font-weight: 300;
+}
+
+/* ── Status pill ── */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 999px; font-size: 0.78rem;
+  font-weight: 600; letter-spacing: 0.04em;
+}
+.pill-teal  { background: rgba(0,201,167,0.12); color: var(--teal); border: 1px solid rgba(0,201,167,0.3); }
+.pill-amber { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.pill-rose  { background: rgba(244,63,94,0.12);  color: var(--rose);  border: 1px solid rgba(244,63,94,0.3);  }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card-header {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Upload zone ── */
+.upload-zone {
+  background: var(--surface);
+  border: 2px dashed rgba(0,201,167,0.35);
+  border-radius: var(--radius-lg);
+  padding: 32px 20px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.upload-zone:hover { border-color: var(--teal); }
+.upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.upload-label { color: var(--text-muted); font-size: 0.88rem; }
+
+/* ── Buttons ── */
+.stButton > button {
+  background: linear-gradient(135deg, var(--teal) 0%, var(--sky) 100%) !important;
+  color: var(--navy) !important; border: none !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 700 !important; font-size: 0.88rem !important;
+  padding: 12px 20px !important;
+  transition: opacity 0.2s, transform 0.15s !important;
+  letter-spacing: 0.03em !important;
+  width: 100% !important;
+}
+.stButton > button:hover {
+  opacity: 0.9 !important; transform: translateY(-1px) !important;
+  box-shadow: 0 8px 24px rgba(0,201,167,0.35) !important;
+}
+.btn-secondary > button {
+  background: var(--surface2) !important;
+  color: var(--teal) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+  background: var(--surface) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important; gap: 4px !important;
+  border: 1px solid var(--border);
+}
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important; font-size: 0.85rem !important;
+  padding: 8px 18px !important; border: none !important;
+}
+.stTabs [aria-selected="true"] {
+  background: linear-gradient(135deg, var(--teal), var(--sky)) !important;
+  color: var(--navy) !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+  background: transparent !important; padding-top: 20px !important;
+}
+
+/* ── Text areas / inputs ── */
+.stTextArea textarea, .stTextInput input {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text) !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.stTextArea textarea:focus, .stTextInput input:focus {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 2px rgba(0,201,167,0.2) !important;
+}
+
+/* ── Chat bubbles ── */
+.chat-wrap { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
+.bubble {
+  max-width: 82%; padding: 12px 16px;
+  border-radius: 16px; font-size: 0.88rem; line-height: 1.55;
+}
+.bubble-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--teal), var(--sky));
+  color: var(--navy); border-bottom-right-radius: 4px;
+  font-weight: 500;
+}
+.bubble-ai {
+  align-self: flex-start;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-bottom-left-radius: 4px;
+}
+.bubble-label {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 4px; opacity: 0.6;
+}
+
+/* ── Analysis output ── */
+.analysis-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 22px 24px;
+  font-size: 0.9rem; line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+/* ── OCR raw box ── */
+.ocr-box {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem; line-height: 1.65;
+  color: var(--teal); max-height: 380px; overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* ── Stat chips ── */
+.stat-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+.stat-chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 14px;
+  font-size: 0.78rem; color: var(--text-muted);
+}
+.stat-chip strong { color: var(--teal); font-size: 1rem; display: block; }
+
+/* ── Divider ── */
+.divider {
+  height: 1px; background: var(--border); margin: 20px 0;
+}
+
+/* ── Sidebar section label ── */
+.sb-label {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted) !important;
+  margin: 20px 0 8px;
+}
+
+/* ── Success/Error overrides ── */
+.stSuccess { background: rgba(0,201,167,0.1) !important; border: 1px solid rgba(0,201,167,0.3) !important; color: var(--teal) !important; }
+.stError   { background: rgba(244,63,94,0.1)  !important; border: 1px solid rgba(244,63,94,0.3)  !important; color: var(--rose)  !important; }
+.stWarning { background: rgba(245,158,11,0.1) !important; border: 1px solid rgba(245,158,11,0.3) !important; color: var(--amber) !important; }
+.stInfo    { background: rgba(56,189,248,0.08)!important; border: 1px solid rgba(56,189,248,0.25)!important; color: var(--sky)   !important; }
+
+/* ── Spinner ── */
+.stSpinner > div { border-top-color: var(--teal) !important; }
+
+/* ── File uploader ── */
+[data-testid="stFileUploader"] {
+  background: var(--surface) !important;
+  border: 2px dashed rgba(0,201,167,0.35) !important;
+  border-radius: var(--radius-lg) !important;
+}
+[data-testid="stFileUploader"]:hover { border-color: var(--teal) !important; }
+[data-testid="stFileUploader"] label { color: var(--text-muted) !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] { color: var(--text-muted) !important; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .block-container { padding: 1rem !important; }
+  .card { padding: 16px; }
+  .bubble { max-width: 95%; }
+}
+</style>
 """, unsafe_allow_html=True)
 
-# Session state
+
+# ── Session state ──────────────────────────────────────────────────────────────
 def init_state():
     defaults = {
-        'ocr': None,
-        'agent': None,
-        'extracted_text': None,
-        'analysis': None,
-        'chat_history': []
+        'ocr': None, 'agent': None,
+        'extracted_text': None, 'analysis': None,
+        'chat_history': [], 'active_tab': 0
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
 
-def main():
-    init_state()
-    
-    # Header
-    st.markdown('<h1 class="main-header">⚡ Medical Agent AI</h1>', unsafe_allow_html=True)
-    st.markdown(
-        '<div style="text-align: center;"><span class="speed-badge">🚀 Powered by Groq • 800+ tokens/sec • Agent AI</span></div>',
-        unsafe_allow_html=True
-    )
-    st.markdown("---")
-    
-    # Sidebar
+
+# ── Sidebar ────────────────────────────────────────────────────────────────────
+def render_sidebar():
     with st.sidebar:
-        st.header("🔐 API Configuration")
-        
-        # Groq API Key
+        # Logo
+        st.markdown("""
+        <div class="logo-block">
+          <div class="logo-icon">🩺</div>
+          <div class="logo-text">
+            <span>MedReport AI</span>
+            <span>Intelligent Analysis</span>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<p class="sb-label">API Configuration</p>', unsafe_allow_html=True)
         groq_key = st.text_input(
-            "Groq API Key",
-            type="password",
+            "Groq API Key", type="password",
             value=st.secrets.get("GROQ_API_KEY", ""),
-            help="Get free key at console.groq.com"
+            placeholder="gsk_...",
+            help="Free key at console.groq.com"
         )
-        
         if groq_key:
             os.environ["GROQ_API_KEY"] = groq_key
-            st.success("✅ Groq API connected!")
-        
-        st.markdown("---")
-        st.header("📊 Stats")
-        
+            st.markdown('<span class="pill pill-teal">✓ &nbsp;Connected</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="pill pill-amber">⚠ &nbsp;Key required</span>', unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        st.markdown('<p class="sb-label">Session Stats</p>', unsafe_allow_html=True)
+
         if st.session_state.extracted_text:
-            st.metric("Characters Extracted", len(st.session_state.extracted_text))
-            st.metric("Analysis Speed", "~2 seconds")
-        
-        st.markdown("---")
-        st.info("""
-        **🔒 Privacy First**
-        - No data stored permanently
-        - Processing happens in real-time
-        - HIPAA-aware AI handling
-        """)
-        
-        st.markdown("---")
-        st.caption("Built with LangChain + Groq + Streamlit")
-    
-    # Check API key
-    if not os.getenv("GROQ_API_KEY"):
-        st.warning("⚠️ Please add your Groq API key in the sidebar")
+            chars = len(st.session_state.extracted_text)
+            words = len(st.session_state.extracted_text.split())
+            st.markdown(f"""
+            <div class="stat-row">
+              <div class="stat-chip"><strong>{chars:,}</strong>Characters</div>
+              <div class="stat-chip"><strong>{words:,}</strong>Words</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown('<p style="color:var(--text-muted);font-size:0.82rem;">Upload a report to see stats</p>', unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        st.markdown('<p class="sb-label">Model</p>', unsafe_allow_html=True)
         st.markdown("""
-        ### How to get FREE Groq API Key:
-        1. Visit [console.groq.com](https://console.groq.com)
-        2. Sign up with email/GitHub
-        3. Create API key (free tier includes generous credits)
-        4. Paste it in the sidebar
+        <div class="stat-chip" style="margin-bottom:8px;">
+          <strong>llama-3.1-70b</strong>via Groq LPU
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div style="font-size:0.78rem; color:var(--text-muted); line-height:1.7;">
+          🔒 &nbsp;No data stored permanently<br>
+          ⚡ &nbsp;800+ tokens / second<br>
+          🏥 &nbsp;Always consult a doctor
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ── Image processing ───────────────────────────────────────────────────────────
+def process_image(image, mode="full"):
+    start = time.time()
+    with st.spinner("🔬 Extracting text from image…"):
+        st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
+
+    if not st.session_state.extracted_text:
+        st.error("Could not read text — try a clearer, well-lit image.")
+        return
+
+    ocr_t = time.time() - start
+
+    label = "Agent" if mode == "full" else "Quick"
+    with st.spinner(f"🤖 Running {label} Analysis via Groq…"):
+        if mode == "full":
+            st.session_state.analysis = st.session_state.agent.analyze_report(
+                st.session_state.extracted_text)
+        else:
+            st.session_state.analysis = st.session_state.agent.quick_analysis(
+                st.session_state.extracted_text)
+
+    total_t = time.time() - start
+    st.success(f"✓ Done in {total_t:.1f}s  —  OCR {ocr_t:.1f}s · AI {total_t-ocr_t:.1f}s")
+    st.rerun()
+
+
+# ── Welcome placeholder ────────────────────────────────────────────────────────
+def render_welcome():
+    st.markdown("""
+    <div class="card" style="text-align:center; padding: 48px 32px;">
+      <div style="font-size:3rem; margin-bottom:16px;">📋</div>
+      <p style="font-family:'DM Serif Display',serif; font-size:1.25rem; color:var(--text); margin-bottom:8px;">
+        No report analysed yet
+      </p>
+      <p style="color:var(--text-muted); font-size:0.88rem; max-width:320px; margin:0 auto 24px;">
+        Upload a medical report image on the left, then tap <strong style="color:var(--teal);">Full Agent Analysis</strong> or <strong style="color:var(--sky);">Quick Analysis</strong>.
+      </p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <span class="pill pill-teal">🩸 Blood Tests</span>
+        <span class="pill pill-teal">🧪 Lab Reports</span>
+        <span class="pill pill-teal">🩻 Radiology</span>
+        <span class="pill pill-amber">💊 Prescriptions</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ── Results panel ──────────────────────────────────────────────────────────────
+def render_results():
+    tabs = st.tabs(["🧠 Agent Analysis", "📝 Extracted Text", "💬 Chat"])
+
+    # ── Tab 1: Analysis ────────────────────────────────────────────────────────
+    with tabs[0]:
+        st.markdown('<div class="card-header">🧠 AI Analysis</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="analysis-box">{st.session_state.analysis}</div>',
+            unsafe_allow_html=True
+        )
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.download_button(
+                "⬇ Download", st.session_state.analysis,
+                file_name="medical_analysis.txt", use_container_width=True
+            )
+        with col2:
+            if st.button("🔄 Re-analyse", use_container_width=True):
+                st.session_state.analysis = None
+                st.rerun()
+        with col3:
+            if st.button("🗑 Clear All", use_container_width=True):
+                st.session_state.extracted_text = None
+                st.session_state.analysis = None
+                st.session_state.chat_history = []
+                st.rerun()
+
+    # ── Tab 2: OCR text ────────────────────────────────────────────────────────
+    with tabs[1]:
+        st.markdown('<div class="card-header">📝 Extracted OCR Text</div>', unsafe_allow_html=True)
+
+        chars = len(st.session_state.extracted_text)
+        words = len(st.session_state.extracted_text.split())
+        lines = st.session_state.extracted_text.count('\n') + 1
+        st.markdown(f"""
+        <div class="stat-row">
+          <div class="stat-chip"><strong>{chars:,}</strong>Characters</div>
+          <div class="stat-chip"><strong>{words:,}</strong>Words</div>
+          <div class="stat-chip"><strong>{lines:,}</strong>Lines</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(
+            f'<div class="ocr-box">{st.session_state.extracted_text}</div>',
+            unsafe_allow_html=True
+        )
+        st.download_button(
+            "⬇ Download Raw Text", st.session_state.extracted_text,
+            file_name="ocr_extracted.txt", use_container_width=True
+        )
+
+    # ── Tab 3: Chat ────────────────────────────────────────────────────────────
+    with tabs[2]:
+        st.markdown('<div class="card-header">💬 Ask Follow-up Questions</div>', unsafe_allow_html=True)
+
+        # Render history
+        if st.session_state.chat_history:
+            bubbles_html = '<div class="chat-wrap">'
+            for role, content in st.session_state.chat_history:
+                if role == "user":
+                    bubbles_html += f'<div class="bubble bubble-user"><div class="bubble-label">You</div>{content}</div>'
+                else:
+                    bubbles_html += f'<div class="bubble bubble-ai"><div class="bubble-label">MedReport AI</div>{content}</div>'
+            bubbles_html += '</div>'
+            st.markdown(bubbles_html, unsafe_allow_html=True)
+            st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <p style="color:var(--text-muted);font-size:0.85rem; margin-bottom:16px;">
+              💡 Try: <em>"What does a high WBC count mean?"</em> or <em>"Explain my cholesterol levels."</em>
+            </p>
+            """, unsafe_allow_html=True)
+
+        question = st.text_input(
+            "Your question", placeholder="Ask anything about your report…",
+            label_visibility="collapsed"
+        )
+        if st.button("Send ➤", use_container_width=True) and question.strip():
+            st.session_state.chat_history.append(("user", question))
+            with st.spinner("Thinking…"):
+                reply = st.session_state.agent.chat_followup(question)
+            st.session_state.chat_history.append(("ai", reply))
+            st.rerun()
+
+
+# ── Main ───────────────────────────────────────────────────────────────────────
+def main():
+    init_state()
+    render_sidebar()
+
+    # Page heading
+    st.markdown("""
+    <div style="margin-bottom: 6px;">
+      <h1 class="page-title">Medical Report <span>Assistant</span></h1>
+      <p class="page-subtitle">Upload a report image · extract text · get instant AI-powered insights</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Guard: API key
+    if not os.getenv("GROQ_API_KEY"):
+        st.warning("Add your Groq API key in the sidebar to continue.")
+        st.markdown("""
+        **Get a free key:** visit [console.groq.com](https://console.groq.com),
+        sign up, create an API key, and paste it in the sidebar.
         """)
         st.stop()
-    
-    # Initialize engines
-    # if not st.session_state.ocr:
-    #     st.session_state.ocr = OCREngine()
 
-    # Initialize engines
+    # Init engines (once per session)
     if not st.session_state.ocr:
         st.session_state.ocr = TesseractOCR()
-    
     if not st.session_state.agent:
         try:
             st.session_state.agent = GroqMedicalAgent()
         except Exception as e:
-            st.error(f"Failed to initialize AI Agent: {str(e)}")
+            st.error(f"Failed to initialise agent: {e}")
             st.stop()
-    
-    # Main layout
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("📤 Upload Medical Report")
-        
+
+    # ── Two-column layout ──────────────────────────────────────────────────────
+    left, right = st.columns([1, 1], gap="large")
+
+    with left:
+        st.markdown('<div class="card-header">📤 Upload Report</div>', unsafe_allow_html=True)
+
         uploaded = st.file_uploader(
-            "Drop image here (JPG, PNG, JPEG)",
-            type=['jpg', 'jpeg', 'png', 'bmp'],
-            help="For best results, use clear, well-lit images"
+            "Drop image here", type=["jpg", "jpeg", "png", "bmp"],
+            label_visibility="collapsed"
         )
-        
+
         if uploaded:
             image = Image.open(uploaded)
-            
-            # Smart resize for display
-            display_img = image.copy()
-            if display_img.width > 600:
-                ratio = 600 / display_img.width
-                display_img = display_img.resize(
-                    (600, int(display_img.height * ratio)), 
-                    Image.Resampling.LANCZOS
-                )
-            
-            st.image(display_img, caption="📸 Uploaded Report", use_column_width=True)
-            
-            # Action buttons
+
+            # Resize for display only
+            disp = image.copy()
+            if disp.width > 580:
+                r = 580 / disp.width
+                disp = disp.resize((580, int(disp.height * r)), Image.Resampling.LANCZOS)
+            st.image(disp, use_column_width=True)
+
+            st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
             c1, c2 = st.columns(2)
-            
             with c1:
                 if st.button("🔍 Full Agent Analysis", use_container_width=True):
                     process_image(image, mode="full")
-            
             with c2:
                 if st.button("⚡ Quick Analysis", use_container_width=True):
                     process_image(image, mode="quick")
-    
-    with col2:
+
+        else:
+            st.markdown("""
+            <div style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+              <div style="font-size:2.5rem; margin-bottom:12px;">🖼️</div>
+              <p style="font-size:0.88rem;">JPG · PNG · JPEG · BMP</p>
+              <p style="font-size:0.78rem; margin-top:4px;">Max file size 200 MB</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with right:
         if st.session_state.analysis:
-            display_results()
+            render_results()
         else:
-            display_welcome()
+            render_welcome()
 
-def process_image(image, mode="full"):
-    """Process image with OCR and AI"""
-    
-    # Step 1: OCR
-    start_time = time.time()
-    
-    # with st.spinner("🔤 Extracting text with EasyOCR..."):
-    #     st.session_state.extracted_text = st.session_state.ocr.extract(image)
-    with st.spinner("🔤 Extracting text with Tesseract..."):
-        st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
-    
-    if not st.session_state.extracted_text:
-        st.error("❌ Could not read text. Try a clearer image.")
-        return
-    
-    ocr_time = time.time() - start_time
-    
-    # Step 2: AI Analysis
-    with st.spinner(f"🤖 Running {'Agent' if mode == 'full' else 'Quick'} Analysis on Groq..."):
-        if mode == "full":
-            st.session_state.analysis = st.session_state.agent.analyze_report(
-                st.session_state.extracted_text
-            )
-        else:
-            st.session_state.analysis = st.session_state.agent.quick_analysis(
-                st.session_state.extracted_text
-            )
-    
-    total_time = time.time() - start_time
-    
-    st.success(f"✅ Done in {total_time:.1f}s (OCR: {ocr_time:.1f}s, AI: {total_time-ocr_time:.1f}s)")
-    st.rerun()
-
-def display_results():
-    """Display analysis results"""
-    st.subheader("📋 AI Analysis Results")
-    
-    # Tabs for different views
-    tabs = st.tabs(["🧠 Agent Analysis", "💬 Chat", "📝 Raw Data"])
-    
-    with tabs[0]:
-        st.markdown('<div class="report-container">', unsafe_allow_html=True)
-        st.markdown(st.session_state.analysis)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Action buttons
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("💾 Save Analysis"):
-                st.download_button(
-                    "Download Report",
-                    st.session_state.analysis,
-                    file_name="medical_analysis.txt"
-                )
-        with c2:
-            if st.button("🔄 Re-analyze"):
-                st.session_state.analysis = None
-                st.rerun()
-        with c3:
-            if st.button("🗑️ Clear"):
-                st.session_state.extracted_text = None
-                st.session_state.analysis = None
-                st.rerun()
-    
-    with tabs[1]:
-        st.markdown("### 💬 Ask Follow-up Questions")
-        st.caption("Chat with the AI agent about your report")
-        
-        # Display chat history
-        for msg in st.session_state.chat_history:
-            role, content = msg
-            css_class = "user-message" if role == "user" else "ai-message"
-            st.markdown(f'<div class="chat-message {css_class}">{content}</div>', 
-                       unsafe_allow_html=True)
-        
-        # Input for new question
-        question = st.text_input("Your question:", placeholder="e.g., What does high hemoglobin mean?")
-        
-        if question and st.button("Send", key="chat_send"):
-            st.session_state.chat_history.append(("user", question))
-            
-            with st.spinner("Agent thinking..."):
-                response = st.session_state.agent.chat_followup(question)
-            
-            st.session_state.chat_history.append(("ai", response))
-            st.rerun()
-    
-    with tabs[2]:
-        st.text_area("Extracted OCR Text", st.session_state.extracted_text, height=300)
-        
-        # Show metrics
-        st.markdown("### 📊 Processing Metrics")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Text Length", len(st.session_state.extracted_text))
-        col2.metric("Words", len(st.session_state.extracted_text.split()))
-        col3.metric("Model", "llama-3.3-70b-versatile")
-
-def display_welcome():
-    """Show welcome screen"""
-    st.info("👈 Upload a medical report to get started")
-    
-    with st.expander("🎯 What This Agent Can Do"):
-        st.markdown("""
-        ### 🧠 AI Agent Capabilities:
-        
-        1. **📋 Comprehensive Analysis**
-           - Identifies test types (Blood, Urine, Imaging, etc.)
-           - Extracts numerical values automatically
-           - Flags abnormal results with explanations
-        
-        2. **💡 Smart Recommendations**
-           - Diet suggestions based on results
-           - Lifestyle modifications
-           - Exercise recommendations
-        
-        3. **💬 Interactive Chat**
-           - Ask follow-up questions
-           - Clarify medical terms
-           - Get second opinions on specific values
-        
-        4. **⚡ Ultra-Fast Processing**
-           - Groq LPU (Language Processing Unit)
-           - 800+ tokens/second inference
-           - Sub-second responses
-        """)
-    
-    with st.expander("🔒 Privacy & Safety"):
-        st.markdown("""
-        - ✅ No data stored on servers
-        - ✅ Processing happens in real-time
-        - ✅ No training on your data
-        - ⚠️ Always consult doctors for medical decisions
-        """)
 
 if __name__ == "__main__":
     main()
