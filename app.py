@@ -177,7 +177,7 @@ def main():
 
     # Initialize engines
     if not st.session_state.ocr:
-    st.session_state.ocr = TesseractOCR()
+        st.session_state.ocr = TesseractOCR()
     
     if not st.session_state.agent:
         try:
