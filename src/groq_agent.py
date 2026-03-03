@@ -163,18 +163,17 @@ class GroqMedicalAgent:
             MessagesPlaceholder(variable_name="agent_scratchpad"),
         ])
         
-        # Create agent with NEW method
+        # Create agent
         agent = create_react_agent(
             llm=self.llm,
             tools=self.tools,
             prompt=prompt
         )
         
-        # Create agent executor
+        # Create agent executor - FIXED for newer versions
         self.agent_executor = AgentExecutor(
             agent=agent,
             tools=self.tools,
-            memory=self.memory,
             verbose=True,
             handle_parsing_errors=True,
             max_iterations=3
@@ -183,9 +182,20 @@ class GroqMedicalAgent:
     def analyze_report(self, report_text: str) -> str:
         """Run agent analysis on medical report"""
         try:
+            # Get chat history from memory
+            chat_history = self.memory.buffer_as_messages
+            
             response = self.agent_executor.invoke({
-                "input": f"Analyze this medical report comprehensively: {report_text}"
+                "input": f"Analyze this medical report comprehensively: {report_text}",
+                "chat_history": chat_history
             })
+            
+            # Save to memory
+            self.memory.save_context(
+                {"input": f"Analyze this medical report comprehensively: {report_text}"},
+                {"output": response["output"]}
+            )
+            
             return response["output"]
         except Exception as e:
             return f"Analysis error: {str(e)}. Please try again."
@@ -204,14 +214,25 @@ class GroqMedicalAgent:
         """
         
         response = self.llm.invoke(direct_prompt)
-        return response
+        return response.content if hasattr(response, 'content') else str(response)
     
     def chat_followup(self, question: str) -> str:
         """Allow follow-up questions about the report"""
         try:
+            # Get chat history from memory
+            chat_history = self.memory.buffer_as_messages
+            
             response = self.agent_executor.invoke({
-                "input": f"Regarding the previous medical report: {question}"
+                "input": f"Regarding the previous medical report: {question}",
+                "chat_history": chat_history
             })
+            
+            # Save to memory
+            self.memory.save_context(
+                {"input": f"Regarding the previous medical report: {question}"},
+                {"output": response["output"]}
+            )
+            
             return response["output"]
         except Exception as e:
             return f"Error: {str(e)}"
