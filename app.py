@@ -1,4 +1,3 @@
-
 import streamlit as st
 from PIL import Image
 import os
@@ -21,16 +20,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap');
 
-/* Change the Sidebar Toggle icon */
-[data-testid="stSidebarCollapseButton"] svg {
-    display: none; /* Hide the default arrow */
-}
-
-[data-testid="stSidebarCollapseButton"]::after {
-    content: "☰"; /* Replace with your desired icon/text */
-    color: var(--navy);
-    font-size: 20px;
-}            
 /* ── CSS Variables ── */
 :root {
   --navy:        #0B1B2B;
@@ -56,6 +45,27 @@ st.markdown("""
 html, body, [class*="css"] {
   font-family: 'DM Sans', sans-serif;
   color: var(--text);
+}
+
+/* ── Fix markdown text color everywhere ── */
+.stMarkdown p, .stMarkdown li, .stMarkdown span,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+.stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+  color: var(--text) !important;
+}
+
+/* ── Remove blockquote arrow / left-border styling ── */
+.stMarkdown blockquote {
+  border-left: none !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-style: normal !important;
+}
+.stMarkdown blockquote p {
+  color: var(--text) !important;
+  font-style: normal !important;
 }
 
 /* hide default streamlit chrome */
@@ -364,7 +374,7 @@ def render_sidebar():
         st.markdown('<p class="sb-label">Model</p>', unsafe_allow_html=True)
         st.markdown("""
         <div class="stat-chip" style="margin-bottom:8px;">
-          <strong>llama-3.3-70b-versatile</strong>via Groq LPU
+          <strong>llama-3.1-70b</strong>via Groq LPU
         </div>
         """, unsafe_allow_html=True)
 
