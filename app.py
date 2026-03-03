@@ -238,7 +238,7 @@ def process_image(image, mode="full"):
     # with st.spinner("🔤 Extracting text with EasyOCR..."):
     #     st.session_state.extracted_text = st.session_state.ocr.extract(image)
     with st.spinner("🔤 Extracting text with Tesseract..."):
-    st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
+        st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
     
     if not st.session_state.extracted_text:
         st.error("❌ Could not read text. Try a clearer image.")
