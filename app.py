@@ -28,7 +28,7 @@ st.markdown("""
 
 [data-testid="stSidebarCollapseButton"]::after {
     content: "☰"; /* Replace with your desired icon/text */
-    color: var(--teal);
+    color: var(--navy);
     font-size: 20px;
 }            
 /* ── CSS Variables ── */
