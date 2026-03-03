@@ -2,97 +2,67 @@ import os
 from typing import Type
 from pydantic import BaseModel, Field
 
-from langchain.tools import BaseTool
-from langchain_core.tools import Tool
-from langchain.agents import create_react_agent
-from langchain.agents.agent import AgentExecutor
+from langchain.tools import BaseTool, Tool
+from langchain.agents import initialize_agent, AgentType
 from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
 
 import streamlit as st
 
 
 class MedicalAnalysisInput(BaseModel):
-    """Input schema for medical analysis"""
     report_text: str = Field(description="The medical report text to analyze")
 
 
 class MedicalAnalysisTool(BaseTool):
-    """Tool for comprehensive medical report analysis"""
     name: str = "medical_analyzer"
-    description: str = """
-    Analyzes medical reports and provides structured insights including:
-    - Report summary and test types
-    - Key numerical values and their meanings
-    - Abnormal values flagged with explanations
-    - Health recommendations
-    - Follow-up suggestions
-    Use this for any medical report analysis task.
-    """
+    description: str = (
+        "Analyzes medical reports and provides structured insights including "
+        "report summary, key numerical values, abnormal values flagged with "
+        "explanations, health recommendations, and follow-up suggestions. "
+        "Use this for any medical report analysis task."
+    )
     args_schema: Type[BaseModel] = MedicalAnalysisInput
 
     def _run(self, report_text: str) -> str:
-        return self._analyze_report(report_text)
-
-    def _analyze_report(self, text: str) -> str:
-        analysis = f"""
-        MEDICAL REPORT ANALYSIS
-        ======================
-
-        📋 SUMMARY:
-        This report contains medical test results that require professional interpretation.
-
-        🔍 DETAILED FINDINGS:
-        {self._extract_findings(text)}
-
-        ⚠️ ABNORMAL INDICATORS:
-        {self._flag_concerns(text)}
-
-        💡 RECOMMENDATIONS:
-        {self._generate_recommendations(text)}
-
-        🏥 NEXT STEPS:
-        Consult with a healthcare provider to discuss these results in detail.
-
-        DISCLAIMER: This AI analysis is for informational purposes only and
-        does not replace professional medical advice.
-        """
-        return analysis
-
-    def _extract_findings(self, text: str) -> str:
-        return "Key values extracted from report text."
-
-    def _flag_concerns(self, text: str) -> str:
-        return "Review by doctor recommended for accurate interpretation."
-
-    def _generate_recommendations(self, text: str) -> str:
-        return "Maintain healthy lifestyle and follow up with healthcare provider."
+        return (
+            "MEDICAL REPORT ANALYSIS\n"
+            "======================\n\n"
+            "📋 SUMMARY:\n"
+            "This report contains medical test results that require professional interpretation.\n\n"
+            "🔍 DETAILED FINDINGS:\n"
+            "Key values have been identified in the report text.\n\n"
+            "⚠️ ABNORMAL INDICATORS:\n"
+            "Review by a doctor is recommended for accurate interpretation.\n\n"
+            "💡 RECOMMENDATIONS:\n"
+            "Maintain a healthy lifestyle and follow up with your healthcare provider.\n\n"
+            "🏥 NEXT STEPS:\n"
+            "Consult with a healthcare provider to discuss these results in detail.\n\n"
+            "DISCLAIMER: This AI analysis is for informational purposes only and "
+            "does not replace professional medical advice."
+        )
 
 
 class HealthTipsTool(BaseTool):
-    """Tool for quick health tips"""
     name: str = "health_advisor"
-    description: str = "Provides quick, actionable health tips based on medical findings"
+    description: str = "Provides quick, actionable health tips based on medical findings."
     args_schema: Type[BaseModel] = MedicalAnalysisInput
 
     def _run(self, report_text: str) -> str:
-        tips = [
-            "💧 Stay hydrated - drink 8 glasses of water daily",
-            "🥗 Eat balanced meals with plenty of vegetables",
-            "🏃 Exercise regularly - at least 30 minutes daily",
-            "😴 Get 7-8 hours of quality sleep",
+        return (
+            "💧 Stay hydrated - drink 8 glasses of water daily\n"
+            "🥗 Eat balanced meals with plenty of vegetables\n"
+            "🏃 Exercise regularly - at least 30 minutes daily\n"
+            "😴 Get 7-8 hours of quality sleep\n"
             "🧘 Manage stress through meditation or yoga"
-        ]
-        return "\n".join(tips)
+        )
 
 
 class GroqMedicalAgent:
-    """Main agent class for medical report analysis"""
+    """Medical report analysis agent powered by Groq + LangChain."""
 
     def __init__(self):
         api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-
         if not api_key:
             raise ValueError("GROQ_API_KEY not found!")
 
@@ -100,103 +70,73 @@ class GroqMedicalAgent:
             api_key=api_key,
             model_name="llama-3.1-70b-versatile",
             temperature=0.2,
-            max_tokens=4096
+            max_tokens=4096,
         )
 
         self.tools = [
             Tool(
                 name="medical_analyzer",
                 func=MedicalAnalysisTool()._run,
-                description="Comprehensive medical report analysis with structured output"
+                description=(
+                    "Comprehensive medical report analysis with structured output. "
+                    "Input should be the full report text."
+                ),
             ),
             Tool(
                 name="health_advisor",
                 func=HealthTipsTool()._run,
-                description="Quick health tips and lifestyle recommendations"
-            )
+                description="Quick health tips and lifestyle recommendations based on report text.",
+            ),
         ]
 
+        # return_messages=False → memory returns a plain string, compatible
+        # with CONVERSATIONAL_REACT_DESCRIPTION's string-based prompt.
         self.memory = ConversationBufferMemory(
             memory_key="chat_history",
-            return_messages=False  # Must be False for string-based ReAct prompt
+            return_messages=False,
         )
 
-        # ✅ FIXED: create_react_agent requires a plain PromptTemplate with
-        # {tools}, {tool_names}, {input}, and {agent_scratchpad} as plain
-        # string variables — NOT MessagesPlaceholder for agent_scratchpad.
-        react_template = """You are a helpful medical report analyzer.
-        Use the available tools to analyze medical reports and provide health advice.
-        Always be thorough, structured, and remind users to consult a doctor.
-
-        Previous conversation:
-        {chat_history}
-
-        You have access to the following tools:
-        {tools}
-
-        Use the following format EXACTLY:
-
-        Question: the input question you must answer
-        Thought: you should always think about what to do
-        Action: the action to take, should be one of [{tool_names}]
-        Action Input: the input to the action
-        Observation: the result of the action
-        ... (this Thought/Action/Action Input/Observation can repeat N times)
-        Thought: I now know the final answer
-        Final Answer: the final answer to the original input question
-
-        Begin!
-
-        Question: {input}
-        Thought:{agent_scratchpad}"""
-
-        prompt = PromptTemplate(
-            input_variables=["tools", "tool_names", "input", "agent_scratchpad", "chat_history"],
-            template=react_template
-        )
-
-        agent = create_react_agent(
+        # initialize_agent builds the correct ReAct prompt internally —
+        # no manual template needed, so no agent_scratchpad type mismatch.
+        self.agent_executor = initialize_agent(
+            tools=self.tools,
             llm=self.llm,
-            tools=self.tools,
-            prompt=prompt
-        )
-
-        self.agent_executor = AgentExecutor(
-            agent=agent,
-            tools=self.tools,
-            memory=self.memory,       # Attach memory directly to executor
+            agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
+            memory=self.memory,
             verbose=True,
             handle_parsing_errors=True,
-            max_iterations=3
+            max_iterations=3,
         )
 
     def analyze_report(self, report_text: str) -> str:
-        """Run agent analysis on medical report"""
+        """Full agent analysis of a medical report."""
         try:
             response = self.agent_executor.invoke({
-                "input": f"Analyze this medical report comprehensively: {report_text}"
+                "input": (
+                    "Analyze this medical report comprehensively using the "
+                    "medical_analyzer tool, then provide health tips using "
+                    f"the health_advisor tool:\n\n{report_text}"
+                )
             })
             return response["output"]
         except Exception as e:
             return f"Analysis error: {str(e)}. Please try again."
 
     def quick_analysis(self, report_text: str) -> str:
-        """Fast, direct LLM analysis without agent overhead"""
-        direct_prompt = f"""
-        Act as a medical report analyzer. Provide a quick, clear summary:
-
-        1. What tests were done?
-        2. Key numbers/values found
-        3. Any red flags (explain simply)
-        4. One practical health tip
-
-        Report: {report_text}
-        """
-        response = self.llm.invoke(direct_prompt)
-        return response.content if hasattr(response, 'content') else str(response)
+        """Fast direct LLM analysis — no agent overhead."""
+        prompt = (
+            "Act as a medical report analyzer. Provide a clear summary:\n\n"
+            "1. What tests were done?\n"
+            "2. Key numbers/values found\n"
+            "3. Any red flags (explain simply)\n"
+            "4. One practical health tip\n\n"
+            f"Report:\n{report_text}"
+        )
+        response = self.llm.invoke(prompt)
+        return response.content if hasattr(response, "content") else str(response)
 
     def chat_followup(self, question: str) -> str:
-        """Allow follow-up questions about the report"""
+        """Follow-up questions about the previously analyzed report."""
         try:
             response = self.agent_executor.invoke({
                 "input": f"Regarding the previous medical report: {question}"
