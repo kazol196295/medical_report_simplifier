@@ -107,7 +107,6 @@ class GroqMedicalAgent:
         # Initialize Groq LLM
         self.llm = ChatGroq(
             api_key=api_key,
-            #model_name="mixtral-8x7b-32768",
             model_name="llama-3.1-70b-versatile",
             temperature=0.2,
             max_tokens=4096
