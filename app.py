@@ -324,7 +324,7 @@ def display_results():
         col1, col2, col3 = st.columns(3)
         col1.metric("Text Length", len(st.session_state.extracted_text))
         col2.metric("Words", len(st.session_state.extracted_text.split()))
-        col3.metric("Model", "llama-3.1-70b-versatile")
+        col3.metric("Model", "llama-3.3-70b-versatile")
 
 def display_welcome():
     """Show welcome screen"""

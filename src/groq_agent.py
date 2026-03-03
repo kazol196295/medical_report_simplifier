@@ -68,7 +68,7 @@ class GroqMedicalAgent:
 
         self.llm = ChatGroq(
             api_key=api_key,
-            model_name="llama-3.1-70b-versatile",
+            model_name="llama-3.3-70b-versatile",
             temperature=0.2,
             max_tokens=4096,
         )
