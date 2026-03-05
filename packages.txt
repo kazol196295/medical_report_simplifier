@@ -1,11 +1,10 @@
-libgl1-mesa-glx
+libgl1
+libglx0
 libglib2.0-0
 libsm6
 libxext6
 libxrender-dev
 libgomp1
-
-
 tesseract-ocr
 tesseract-ocr-eng
 libtesseract-dev
