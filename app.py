@@ -1,4 +1,9 @@
 # app.py
+import os, warnings
+# Fix torch/Streamlit watcher conflict BEFORE streamlit import
+os.environ.setdefault("STREAMLIT_SERVER_FILE_WATCHER_TYPE", "none")
+warnings.filterwarnings("ignore", message=".*torch.classes.*")
+
 import streamlit as st
 from PIL import Image
 import os

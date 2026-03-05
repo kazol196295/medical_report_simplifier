@@ -3,13 +3,13 @@ pytesseract
 Pillow
 numpy
 langchainhub
+faiss-cpu
+langchain-community
+langchain-huggingface
+sentence-transformers
 
 langchain==0.2.0
 langchain-core==0.2.2
 langchain-groq==0.1.6
 streamlit==1.32.2
 pydantic==2.7.0
-
-faiss-cpu
-langchain-community
-sentence-transformers
