@@ -8,7 +8,7 @@ from langchain_groq import ChatGroq
 from langchain.memory import ConversationBufferMemory
 
 import streamlit as st
-
+from src.rag_engine import MedicalRAG
 
 class MedicalAnalysisInput(BaseModel):
     report_text: str = Field(description="The medical report text to analyze")
@@ -107,6 +107,11 @@ class GroqMedicalAgent:
             handle_parsing_errors=True,
             max_iterations=3,
         )
+        self.rag = MedicalRAG()
+    
+
+    def build_rag_index(self, report_text: str) -> int:
+        return self.rag.index_report(report_text)
 
     def analyze_report(self, report_text: str) -> str:
         """Full agent analysis of a medical report."""
@@ -136,11 +141,22 @@ class GroqMedicalAgent:
         return response.content if hasattr(response, "content") else str(response)
 
     def chat_followup(self, question: str) -> str:
-        """Follow-up questions about the previously analyzed report."""
+        """RAG-powered follow-up: retrieve relevant chunks, then answer."""
         try:
-            response = self.agent_executor.invoke({
-                "input": f"Regarding the previous medical report: {question}"
-            })
+            if self.rag.is_ready:
+                context = self.rag.retrieve(question)
+                augmented_input = (
+                    "You are a helpful medical assistant. "
+                    "Use ONLY the context below to answer the question. "
+                    "If the answer isn't in the context, say so.\n\n"
+                    f"CONTEXT:\n{context}\n\n"
+                    f"QUESTION: {question}"
+                )
+            else:
+                # Fallback: no index yet
+                augmented_input = f"Regarding the previous medical report: {question}"
+
+            response = self.agent_executor.invoke({"input": augmented_input})
             return response["output"]
         except Exception as e:
             return f"Error: {str(e)}"
