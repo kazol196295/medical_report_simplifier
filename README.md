@@ -5,6 +5,14 @@ An intelligent, AI-powered web application that extracts text from medical repor
 **[🌐 Live Demo](https://medicalreportsimplifier-kazol.streamlit.app/#medical-report-assistant)** | **[GitHub](https://github.com/kazol196295/medical_report_simplifier)**
 
 ---
+## Project Screenshot
+<table>
+  <tr>
+    <td><img src="[https://github.com](https://github.com/kazol196295/medical_report_simplifier/blob/main/sample%201.jpeg)" width="400" alt="Sample 1"></td>
+    <td><img src="[https://github.com](https://github.com/kazol196295/medical_report_simplifier/blob/main/sample%202.png)" width="400" alt="Sample 2"></td>
+  </tr>
+</table>
+
 
 ## ✨ Features
 
