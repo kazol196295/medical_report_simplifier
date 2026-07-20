@@ -15,3 +15,5 @@ sentence-transformers
 faiss-cpu
 
 requests
+torch
+torchvision
