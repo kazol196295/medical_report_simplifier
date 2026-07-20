@@ -1,31 +1,21 @@
 # src/prompts.py
 # All LLM system prompts and JSON schemas for the Medical Report Simplifier
 
-EXTRACT_PROFILE_PROMPT = """You are a medical data extraction specialist. Extract a structured patient profile from the following medical report text.
+EXTRACT_PROFILE_PROMPT = """Extract patient info from this medical report. Return ONLY a JSON object, nothing else.
 
-IMPORTANT INSTRUCTIONS:
-1. Return ONLY valid JSON. No markdown, no code fences, no explanation.
-2. The response MUST be a complete JSON object starting with {{ and ending with }}.
-3. All fields are required. Use null or [] if information is not available.
-4. Age MUST be an integer (e.g. 45), not a string.
+Use this exact format:
+{{"age": 45, "gender": "Male", "diagnosis": "condition", "stage": null, "biomarkers": [], "medications": [], "conditions": ["condition1"], "lab_findings": ["test: value (High/Low)"], "summary": "brief summary"}}
 
-Required JSON schema:
-{{
-  "age": <integer or null>,
-  "gender": "<Male|Female|Other|null>",
-  "diagnosis": "<primary diagnosis string>",
-  "stage": "<disease stage if applicable, e.g. 'II', 'Stage 3', or null>",
-  "biomarkers": ["<list of biomarkers>"],
-  "medications": ["<list of current medications>"],
-  "conditions": ["<list of medical conditions mentioned>"],
-  "lab_findings": ["<key abnormal lab values with value and High/Low/Normal>"],
-  "summary": "<one-line plain-language summary>"
-}}
+Rules:
+- age must be integer or null
+- gender: Male, Female, or null
+- Use empty arrays [] if no data found
+- Return complete JSON with opening {{ and closing }}
 
-Medical Report Text:
+Report:
 {ocr_text}
 
-Return the complete JSON object now:"""
+JSON:"""
 
 ELIGIBILITY_AGENT_PROMPT = """You are a clinical trial eligibility specialist. Evaluate whether the patient is eligible for the given clinical trial.
 
