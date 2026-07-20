@@ -85,77 +85,97 @@ def clinical_trial_matcher(patient_profile_json: str) -> str:
 
     trial_texts = [format_trial_for_rag(t) for t in trials]
 
-    rag = MedicalRAG()
-    num_chunks = rag.create_index(trial_texts)
-
-    query_parts = [diagnosis]
-    if profile.get("stage"):
-        query_parts.append(f"stage {profile['stage']}")
-    if biomarkers:
-        query_parts.append(biomarkers)
-    query = " ".join(query_parts)
-
-    retrieved = rag.retrieve(query, k=5)
-
-    retrieved_nct_ids = set()
-    for chunk in retrieved:
-        for text in trial_texts:
-            if chunk in text:
-                for t in trials:
-                    if t["nct_id"] in text:
-                        retrieved_nct_ids.add(t["nct_id"])
-                break
-
-    top_trials = [t for t in trials if t["nct_id"] in retrieved_nct_ids]
-    if not top_trials:
+    try:
+        rag = MedicalRAG()
+        num_chunks = rag.create_index(trial_texts)
+    except Exception as e:
+        # If RAG fails, use first 5 trials directly
         top_trials = trials[:5]
+        rag = None
+
+    if rag is not None:
+        query_parts = [diagnosis]
+        if profile.get("stage"):
+            query_parts.append(f"stage {profile['stage']}")
+        if biomarkers:
+            query_parts.append(biomarkers)
+        query = " ".join(query_parts)
+
+        retrieved = rag.retrieve(query, k=5)
+
+        retrieved_nct_ids = set()
+        for chunk in retrieved:
+            for text in trial_texts:
+                if chunk in text:
+                    for t in trials:
+                        if t["nct_id"] in text:
+                            retrieved_nct_ids.add(t["nct_id"])
+                    break
+
+        top_trials = [t for t in trials if t["nct_id"] in retrieved_nct_ids]
+        if not top_trials:
+            top_trials = trials[:5]
 
     llm = _get_llm()
     all_results = []
 
     for trial in top_trials[:5]:
-        prompt = ELIGIBILITY_AGENT_PROMPT.format(
-            patient_profile=json.dumps(profile, indent=2),
-            nct_id=trial["nct_id"],
-            title=trial["title"],
-            status=trial["status"],
-            phase=trial["phase"],
-            conditions=", ".join(trial["conditions"]),
-            interventions=", ".join([iv["name"] for iv in trial["interventions"]]),
-            min_age=trial["min_age"],
-            max_age=trial["max_age"],
-            sex=trial["sex"],
-            eligibility_criteria=trial["criteria"][:3000],
-        )
-        response = llm.invoke(prompt)
-        raw = response.content if hasattr(response, "content") else str(response)
-
-        import re
-        cleaned = raw.strip()
-        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
-        cleaned = re.sub(r'\s*```$', '', cleaned)
-        cleaned = cleaned.strip()
-
         try:
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, list):
-                for item in parsed:
-                    if isinstance(item, dict):
-                        all_results.append(item)
-            elif isinstance(parsed, dict):
-                all_results.append(parsed)
-        except json.JSONDecodeError:
+            prompt = ELIGIBILITY_AGENT_PROMPT.format(
+                patient_profile=json.dumps(profile, indent=2),
+                nct_id=trial["nct_id"],
+                title=trial["title"],
+                status=trial["status"],
+                phase=trial["phase"],
+                conditions=", ".join(trial["conditions"]),
+                interventions=", ".join([iv["name"] for iv in trial["interventions"]]),
+                min_age=trial["min_age"],
+                max_age=trial["max_age"],
+                sex=trial["sex"],
+                eligibility_criteria=trial["criteria"][:3000],
+            )
+            response = llm.invoke(prompt)
+            raw = response.content if hasattr(response, "content") else str(response)
+
+            import re
+            cleaned = raw.strip()
+            cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+            cleaned = re.sub(r'\s*```$', '', cleaned)
+            cleaned = cleaned.strip()
+
+            try:
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, list):
+                    for item in parsed:
+                        if isinstance(item, dict):
+                            all_results.append(item)
+                elif isinstance(parsed, dict):
+                    all_results.append(parsed)
+            except json.JSONDecodeError:
+                all_results.append({
+                    "nct_id": trial["nct_id"],
+                    "title": trial["title"],
+                    "status": trial["status"],
+                    "phase": trial["phase"],
+                    "eligibility_score": 0.0,
+                    "verdict": "Parse Error",
+                    "matched_criteria": [],
+                    "unmet_criteria": [],
+                    "uncertain_criteria": [],
+                    "explanation": f"Could not parse LLM response. Raw: {raw[:200]}",
+                })
+        except Exception as e:
             all_results.append({
-                "nct_id": trial["nct_id"],
-                "title": trial["title"],
-                "status": trial["status"],
-                "phase": trial["phase"],
+                "nct_id": trial.get("nct_id", "Unknown"),
+                "title": trial.get("title", "Unknown"),
+                "status": trial.get("status", ""),
+                "phase": trial.get("phase", ""),
                 "eligibility_score": 0.0,
-                "verdict": "Parse Error",
+                "verdict": "Error",
                 "matched_criteria": [],
                 "unmet_criteria": [],
                 "uncertain_criteria": [],
-                "explanation": f"Could not parse LLM response. Raw: {raw[:200]}",
+                "explanation": f"Error analyzing trial: {str(e)[:200]}",
             })
 
     all_results.sort(key=lambda x: x.get("eligibility_score", 0), reverse=True)

@@ -601,11 +601,18 @@ def render_trials_tab():
                 try:
                     profile_str = json.dumps(st.session_state.patient_profile)
                     result = run_tool_directly("clinical_trial_matcher", profile_str)
-                    parsed = json.loads(result)
-                    if isinstance(parsed, str):
-                        st.session_state.trial_results = {"error": parsed}
+                    
+                    if not result or not result.strip():
+                        st.session_state.trial_results = {"error": "Empty response from trial matcher"}
                     else:
-                        st.session_state.trial_results = parsed
+                        try:
+                            parsed = json.loads(result)
+                            if isinstance(parsed, str):
+                                st.session_state.trial_results = {"error": parsed}
+                            else:
+                                st.session_state.trial_results = parsed
+                        except json.JSONDecodeError:
+                            st.session_state.trial_results = {"error": f"Invalid response: {result[:200]}"}
                 except Exception as e:
                     st.error(f"Trial matching failed: {str(e)}")
                     return
