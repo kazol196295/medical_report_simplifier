@@ -3,33 +3,29 @@
 
 EXTRACT_PROFILE_PROMPT = """You are a medical data extraction specialist. Extract a structured patient profile from the following medical report text.
 
-IMPORTANT: Return ONLY valid JSON. No markdown, no code fences, no explanation. Just the raw JSON object.
+IMPORTANT INSTRUCTIONS:
+1. Return ONLY valid JSON. No markdown, no code fences, no explanation.
+2. The response MUST be a complete JSON object starting with {{ and ending with }}.
+3. All fields are required. Use null or [] if information is not available.
+4. Age MUST be an integer (e.g. 45), not a string.
 
 Required JSON schema:
-{
+{{
   "age": <integer or null>,
   "gender": "<Male|Female|Other|null>",
   "diagnosis": "<primary diagnosis string>",
   "stage": "<disease stage if applicable, e.g. 'II', 'Stage 3', or null>",
-  "biomarkers": ["<list of biomarkers, e.g. 'HER2 Positive', 'EGFR Mutation'>"],
+  "biomarkers": ["<list of biomarkers>"],
   "medications": ["<list of current medications>"],
   "conditions": ["<list of medical conditions mentioned>"],
-  "lab_findings": ["<key abnormal lab values, e.g. 'WBC: 12,000 (High)', 'HbA1c: 8.2% (High)'>"],
-  "summary": "<one-line plain-language summary of the patient's medical situation>"
-}
-
-Rules:
-- If a field cannot be determined from the text, use null for strings/integers or [] for arrays.
-- Age must be an integer, not a string.
-- Be specific with diagnosis (include receptor status, mutation markers if mentioned).
-- Include ALL biomarkers mentioned (HER2, EGFR, BRCA, PD-L1, etc.).
-- Include ALL medications, even supplements.
-- Lab findings should include the value and whether it is High/Low/Normal.
+  "lab_findings": ["<key abnormal lab values with value and High/Low/Normal>"],
+  "summary": "<one-line plain-language summary>"
+}}
 
 Medical Report Text:
 {ocr_text}
 
-Return the JSON object now:"""
+Return the complete JSON object now:"""
 
 ELIGIBILITY_AGENT_PROMPT = """You are a clinical trial eligibility specialist. Evaluate whether the patient is eligible for the given clinical trial.
 

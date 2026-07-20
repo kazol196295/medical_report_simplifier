@@ -67,11 +67,13 @@ def clinical_trial_matcher(patient_profile_json: str) -> str:
         return json.dumps({"error": "No diagnosis found in patient profile"})
 
     biomarkers = " ".join(profile.get("biomarkers", []))
+    conditions = profile.get("conditions", [])
 
     try:
         trials = fetch_clinical_trials(
             diagnosis=diagnosis,
             biomarkers=biomarkers,
+            conditions=conditions,
             max_results=20,
             status="RECRUITING",
         )
@@ -93,7 +95,7 @@ def clinical_trial_matcher(patient_profile_json: str) -> str:
         query_parts.append(biomarkers)
     query = " ".join(query_parts)
 
-    retrieved = rag.retrieve(query, top_k=5)
+    retrieved = rag.retrieve(query, k=5)
 
     retrieved_nct_ids = set()
     for chunk in retrieved:
@@ -137,8 +139,10 @@ def clinical_trial_matcher(patient_profile_json: str) -> str:
         try:
             parsed = json.loads(cleaned)
             if isinstance(parsed, list):
-                all_results.extend(parsed)
-            else:
+                for item in parsed:
+                    if isinstance(item, dict):
+                        all_results.append(item)
+            elif isinstance(parsed, dict):
                 all_results.append(parsed)
         except json.JSONDecodeError:
             all_results.append({

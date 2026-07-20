@@ -29,9 +29,9 @@ SYSTEM_PROMPT = """You are MedReport AI, a helpful medical report assistant. You
 
 When the user asks you to:
 - "explain", "analyze", "interpret" the report → use the medical_analyzer tool
-- "tips", "advice", "health tips" → use the health_advisor tool
+- "tips", "advice", "suggestions", "health tips" → use the health_advisor tool
 - "find trials", "clinical trials", "match trials" → use the clinical_trial_matcher tool
-- Anything else → respond conversationally
+- Anything else → respond conversationally using the report context provided below
 
 Always be helpful, accurate, and remind users that AI analysis is not a substitute for professional medical advice."""
 
@@ -62,8 +62,16 @@ def call_model(state: AgentState):
     
     messages = state["messages"]
     
+    ocr_text = state.get("ocr_text", "")
+    if ocr_text:
+        system_content = SYSTEM_PROMPT + f"\n\n--- PATIENT REPORT CONTEXT ---\n{ocr_text}\n--- END REPORT ---"
+    else:
+        system_content = SYSTEM_PROMPT
+    
     if not messages or not isinstance(messages[0], SystemMessage):
-        messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
+        messages = [SystemMessage(content=system_content)] + messages
+    else:
+        messages = [SystemMessage(content=system_content)] + messages[1:]
     
     response = llm.invoke(messages)
     return {"messages": [response]}

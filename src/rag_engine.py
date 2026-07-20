@@ -4,6 +4,7 @@ import warnings
 
 warnings.filterwarnings("ignore", message=".*position_ids.*")
 warnings.filterwarnings("ignore", message=".*torch.classes.*")
+warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
 os.environ.setdefault("STREAMLIT_SERVER_FILE_WATCHER_TYPE", "none")
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter

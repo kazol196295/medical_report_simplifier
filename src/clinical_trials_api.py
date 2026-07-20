@@ -10,6 +10,7 @@ BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 def fetch_clinical_trials(
     diagnosis: str,
     biomarkers: str = "",
+    conditions: list = None,
     max_results: int = 20,
     status: str = "RECRUITING"
 ) -> list[dict]:
@@ -19,6 +20,7 @@ def fetch_clinical_trials(
     Args:
         diagnosis: Primary condition/disease (e.g. "Breast Cancer")
         biomarkers: Additional search terms (e.g. "HER2 Positive")
+        conditions: List of conditions to broaden search
         max_results: Maximum number of trials to return (max 1000)
         status: Trial status filter (default: RECRUITING)
     
@@ -26,14 +28,35 @@ def fetch_clinical_trials(
         List of dicts with keys: nct_id, title, status, phase, criteria,
         conditions, interventions, min_age, max_age, sex
     """
-    query_term = diagnosis
+    # Build search terms - try multiple strategies
+    search_terms = [diagnosis]
     if biomarkers:
-        query_term = f"{diagnosis} {biomarkers}"
+        search_terms.append(f"{diagnosis} {biomarkers}")
+    if conditions:
+        for cond in conditions[:3]:  # Try up to 3 additional conditions
+            if cond.lower() != diagnosis.lower():
+                search_terms.append(cond)
 
+    # Try each search term until we find results
+    for term in search_terms:
+        trials = _search_trials(term, status, max_results)
+        if trials:
+            return trials
+
+    # If still no results, try without status filter
+    for term in search_terms:
+        trials = _search_trials(term, "", max_results)
+        if trials:
+            return trials
+
+    return []
+
+
+def _search_trials(query: str, status: str, max_results: int) -> list[dict]:
+    """Search trials with a specific query term."""
     params = {
-        "query.cond": diagnosis,
-        "query.term": query_term,
-        "filter.overallStatus": status,
+        "query.cond": query,
+        "query.term": query,
         "fields": ",".join([
             "protocolSection.identificationModule",
             "protocolSection.statusModule",
@@ -47,11 +70,14 @@ def fetch_clinical_trials(
         "format": "json",
     }
 
+    if status:
+        params["filter.overallStatus"] = status
+
     try:
         response = requests.get(BASE_URL, params=params, timeout=30)
         response.raise_for_status()
     except requests.RequestException as e:
-        raise RuntimeError(f"ClinicalTrials.gov API error: {e}")
+        return []
 
     data = response.json()
     studies = data.get("studies", [])

@@ -2,6 +2,7 @@
 import os, warnings
 os.environ.setdefault("STREAMLIT_SERVER_FILE_WATCHER_TYPE", "none")
 warnings.filterwarnings("ignore", message=".*torch.classes.*")
+warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
 
 import streamlit as st
 from PIL import Image
@@ -426,14 +427,14 @@ def render_analysis_tab():
     with col1:
         st.download_button(
             "Download", st.session_state.analysis,
-            file_name="medical_analysis.txt", use_container_width=True
+            file_name="medical_analysis.txt", width='stretch'
         )
     with col2:
-        if st.button("Re-analyse", use_container_width=True):
+        if st.button("Re-analyse", width='stretch'):
             st.session_state.analysis = None
             st.rerun()
     with col3:
-        if st.button("Clear All", use_container_width=True):
+        if st.button("Clear All", width='stretch'):
             st.session_state.extracted_text = None
             st.session_state.analysis = None
             st.session_state.chat_history = []
@@ -464,7 +465,7 @@ def render_ocr_tab():
     )
     st.download_button(
         "Download Raw Text", st.session_state.extracted_text,
-        file_name="ocr_extracted.txt", use_container_width=True
+        file_name="ocr_extracted.txt", width='stretch'
     )
 
 
@@ -516,7 +517,7 @@ def render_chat_tab():
         placeholder="Ask anything about your report…",
         label_visibility="collapsed"
     )
-    if st.button("Send", use_container_width=True) and question.strip():
+    if st.button("Send", width='stretch') and question.strip():
         st.session_state.chat_history.append(("user", question))
         with st.spinner("Thinking…"):
             agent = st.session_state.agent
@@ -552,7 +553,7 @@ def render_trials_tab():
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("Step 1: Extract Patient Profile", use_container_width=True):
+        if st.button("Step 1: Extract Patient Profile", width='stretch'):
             with st.spinner("Extracting patient profile via LLM…"):
                 try:
                     llm = _get_profile_llm()
@@ -595,12 +596,16 @@ def render_trials_tab():
         return
 
     with col2:
-        if st.button("Step 2: Find Clinical Trials", use_container_width=True):
+        if st.button("Step 2: Find Clinical Trials", width='stretch'):
             with st.spinner("Searching ClinicalTrials.gov + running eligibility analysis…"):
                 try:
                     profile_str = json.dumps(st.session_state.patient_profile)
                     result = run_tool_directly("clinical_trial_matcher", profile_str)
-                    st.session_state.trial_results = json.loads(result)
+                    parsed = json.loads(result)
+                    if isinstance(parsed, str):
+                        st.session_state.trial_results = {"error": parsed}
+                    else:
+                        st.session_state.trial_results = parsed
                 except Exception as e:
                     st.error(f"Trial matching failed: {str(e)}")
                     return
@@ -613,11 +618,27 @@ def render_trials_tab():
     st.markdown('<div class="card-header">Ranked Clinical Trials</div>', unsafe_allow_html=True)
 
     results = st.session_state.trial_results
-    if isinstance(results, dict) and "error" in results:
-        st.error(results["error"])
+    if isinstance(results, str):
+        st.error(results)
         return
 
-    if isinstance(results, list) and len(results) == 0:
+    if isinstance(results, dict):
+        if "error" in results:
+            st.error(results["error"])
+            return
+        if "message" in results:
+            st.info(results["message"])
+            return
+        st.error(f"Unexpected response: {results}")
+        return
+
+    if not isinstance(results, list):
+        st.error(f"Unexpected result type: {type(results).__name__}")
+        return
+
+    results = [r for r in results if isinstance(r, dict)]
+
+    if len(results) == 0:
         st.info("No matching trials found. Try editing the profile with a different diagnosis.")
         return
 
@@ -689,8 +710,8 @@ def _get_profile_llm():
         st.session_state.profile_llm = ChatGroq(
             api_key=api_key,
             model_name="llama-3.3-70b-versatile",
-            temperature=0.1,
-            max_tokens=2048,
+            temperature=0.0,
+            max_tokens=4096,
         )
     return st.session_state.profile_llm
 
@@ -758,16 +779,16 @@ def main():
             if disp.width > 580:
                 r = 580 / disp.width
                 disp = disp.resize((580, int(disp.height * r)), Image.Resampling.LANCZOS)
-            st.image(disp, use_container_width=True)
+            st.image(disp, width='stretch')
 
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
             c1, c2 = st.columns(2)
             with c1:
-                if st.button("Full Analysis", use_container_width=True):
+                if st.button("Full Analysis", width='stretch'):
                     process_image(image, mode="full")
             with c2:
-                if st.button("Quick Analysis", use_container_width=True):
+                if st.button("Quick Analysis", width='stretch'):
                     process_image(image, mode="quick")
 
         else:
