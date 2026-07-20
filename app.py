@@ -758,7 +758,7 @@ def main():
             if disp.width > 580:
                 r = 580 / disp.width
                 disp = disp.resize((580, int(disp.height * r)), Image.Resampling.LANCZOS)
-            st.image(disp, use_column_width=True)
+            st.image(disp, use_container_width=True)
 
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 

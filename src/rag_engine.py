@@ -19,23 +19,40 @@ except ImportError:
 
 class MedicalRAG:
     EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    _shared_embedder = None
 
     def __init__(self):
-        if "rag_embedder" not in st.session_state:
-            with st.spinner("Loading embedding model (one-time setup)…"):
-                st.session_state.rag_embedder = HuggingFaceEmbeddings(
-                    model_name=self.EMBED_MODEL,
-                    model_kwargs={
-                        "device": "cpu",
-                        "trust_remote_code": False,
-                    },
-                    encode_kwargs={
-                        "normalize_embeddings": True,
-                        "batch_size": 32,
-                    },
-                )
-        self.embedder = st.session_state.rag_embedder
+        self.embedder = self._get_embedder()
         self.vector_store = None
+
+    @classmethod
+    def _get_embedder(cls):
+        if cls._shared_embedder is not None:
+            return cls._shared_embedder
+
+        try:
+            from streamlit.runtime.scriptrunner_utils.script_run_context import get_script_run_ctx
+            ctx = get_script_run_ctx()
+        except Exception:
+            ctx = None
+
+        if ctx is not None:
+            if "rag_embedder" not in st.session_state:
+                with st.spinner("Loading embedding model (one-time setup)…"):
+                    st.session_state.rag_embedder = HuggingFaceEmbeddings(
+                        model_name=cls.EMBED_MODEL,
+                        model_kwargs={"device": "cpu", "trust_remote_code": False},
+                        encode_kwargs={"normalize_embeddings": True, "batch_size": 32},
+                    )
+            cls._shared_embedder = st.session_state.rag_embedder
+        else:
+            cls._shared_embedder = HuggingFaceEmbeddings(
+                model_name=cls.EMBED_MODEL,
+                model_kwargs={"device": "cpu", "trust_remote_code": False},
+                encode_kwargs={"normalize_embeddings": True, "batch_size": 32},
+            )
+
+        return cls._shared_embedder
 
     def index_report(self, text: str) -> int:
         splitter = RecursiveCharacterTextSplitter(

@@ -14,6 +14,13 @@ def clean_json_response(text: str) -> str:
     text = re.sub(r'\s*```$', '', text)
     text = text.strip()
 
+    # Replace literal \n, \t escape sequences (two-char) with spaces
+    text = text.replace('\\n', ' ').replace('\\t', ' ').replace('\\r', ' ')
+
+    # Also remove actual newlines
+    text = text.replace('\n', ' ')
+    text = re.sub(r'\s+', ' ', text).strip()
+
     # If the cleaned text doesn't start with a JSON object/array opener,
     # try to extract the JSON substring from the response.
     if text and text[0] not in ('{', '['):
@@ -51,19 +58,22 @@ def extract_patient_profile(ocr_text: str, llm: ChatGroq) -> dict:
         profile = json.loads(cleaned)
     except json.JSONDecodeError:
         # Fallback: try to extract JSON object directly from raw response
+        # First clean the raw response the same way
+        raw_cleaned = raw.replace('\\n', ' ').replace('\\t', ' ').replace('\\r', ' ').replace('\n', ' ')
+        raw_cleaned = re.sub(r'\s+', ' ', raw_cleaned).strip()
         for start_char, end_char in [('{', '}'), ('[', ']')]:
-            start = raw.find(start_char)
-            end = raw.rfind(end_char)
+            start = raw_cleaned.find(start_char)
+            end = raw_cleaned.rfind(end_char)
             if start != -1 and end > start:
                 try:
-                    profile = json.loads(raw[start:end + 1])
+                    profile = json.loads(raw_cleaned[start:end + 1])
                     break
                 except json.JSONDecodeError:
                     continue
             # Opening brace missing but closing brace exists — try prepending it
             if start == -1 and end != -1:
                 try:
-                    profile = json.loads(start_char + raw[:end + 1])
+                    profile = json.loads(start_char + raw_cleaned[:end + 1])
                     break
                 except json.JSONDecodeError:
                     continue
