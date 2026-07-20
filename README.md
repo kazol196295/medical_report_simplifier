@@ -9,7 +9,7 @@ An AI-powered web application that extracts text from medical report images usin
 ## Features
 
 ### Document Processing
-- **OCR Extraction**: Extract text from medical images (JPG, PNG, JPEG, BMP) using Tesseract OCR
+- **OCR Extraction**: Extract text from medical images (JPG, PNG, JPEG, BMP) using Tesseract OCR — runs automatically on upload
 - **Image Support**: Blood tests, lab reports, radiology images, prescriptions
 - **High Accuracy**: Medical-grade text recognition with English language optimization
 
@@ -109,6 +109,7 @@ The app will open at `http://localhost:8501`
 ### Step 1: Upload a Medical Report
 - Click upload area or drag & drop a medical report image
 - Supported: JPG, PNG, JPEG, BMP (clear, well-lit images work best)
+- Text is extracted automatically via OCR once uploaded
 
 ### Step 2: Choose Analysis Mode
 - **Full Analysis**: Comprehensive breakdown with detailed insights

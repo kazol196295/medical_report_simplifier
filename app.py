@@ -284,6 +284,7 @@ def init_state():
         'patient_profile': None,
         'trial_results': None,
         'profile_error': None,
+        'uploaded_file_name': None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -355,25 +356,12 @@ def render_sidebar():
 
 
 # ── Image processing ───────────────────────────────────────────────────────────
-def process_image(image, mode="full"):
+def run_ai_analysis(mode="full"):
     start = time.time()
 
-    with st.spinner("Extracting text from image…"):
-        st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
-
     if not st.session_state.extracted_text:
-        st.error("Could not read text — try a clearer, well-lit image.")
+        st.error("No extracted text found. Upload an image first.")
         return
-
-    ocr_t = time.time() - start
-
-    from src.rag_engine import MedicalRAG
-    with st.spinner("Building RAG index…"):
-        rag = MedicalRAG()
-        n_chunks = rag.index_report(st.session_state.extracted_text)
-        st.session_state.rag_chunks = n_chunks
-
-    rag_t = time.time() - start - ocr_t
 
     label = "Full" if mode == "full" else "Quick"
     with st.spinner(f"Running {label} Analysis via Groq…"):
@@ -384,12 +372,7 @@ def process_image(image, mode="full"):
         st.session_state.analysis = result
 
     total_t = time.time() - start
-    ai_t = total_t - ocr_t - rag_t
-
-    st.success(
-        f"Done in {total_t:.1f}s  —  "
-        f"OCR {ocr_t:.1f}s · RAG index {rag_t:.1f}s · AI {ai_t:.1f}s"
-    )
+    st.success(f"Done in {total_t:.1f}s")
     st.rerun()
 
 
@@ -402,8 +385,8 @@ def render_welcome():
         No report analysed yet
       </p>
       <p style="color:var(--text-muted); font-size:0.88rem; max-width:320px; margin:0 auto 24px;">
-        Upload a medical report image on the left, then tap
-        <strong style="color:var(--teal);">Full Analysis</strong> or
+        Upload a medical report image — text is extracted automatically.
+        Then tap <strong style="color:var(--teal);">Full Analysis</strong> or
         <strong style="color:var(--sky);">Quick Analysis</strong>.
       </p>
       <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
@@ -441,6 +424,7 @@ def render_analysis_tab():
             st.session_state.rag_chunks = 0
             st.session_state.patient_profile = None
             st.session_state.trial_results = None
+            st.session_state.uploaded_file_name = None
             st.rerun()
 
 
@@ -788,15 +772,37 @@ def main():
                 disp = disp.resize((580, int(disp.height * r)), Image.Resampling.LANCZOS)
             st.image(disp, width='stretch')
 
+            if uploaded.name != st.session_state.uploaded_file_name:
+                st.session_state.uploaded_file_name = uploaded.name
+                st.session_state.extracted_text = None
+                st.session_state.analysis = None
+                st.session_state.chat_history = []
+                st.session_state.rag_chunks = 0
+                st.session_state.patient_profile = None
+                st.session_state.trial_results = None
+
+                with st.spinner("Extracting text from image…"):
+                    st.session_state.extracted_text = st.session_state.ocr.extract_text(image)
+
+                if st.session_state.extracted_text:
+                    with st.spinner("Building RAG index…"):
+                        from src.rag_engine import MedicalRAG
+                        rag = MedicalRAG()
+                        st.session_state.rag_chunks = rag.index_report(st.session_state.extracted_text)
+                    st.rerun()
+                else:
+                    st.error("Could not read text — try a clearer, well-lit image.")
+
             st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Full Analysis", width='stretch'):
-                    process_image(image, mode="full")
-            with c2:
-                if st.button("Quick Analysis", width='stretch'):
-                    process_image(image, mode="quick")
+            if st.session_state.extracted_text:
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Full Analysis", width='stretch'):
+                        run_ai_analysis(mode="full")
+                with c2:
+                    if st.button("Quick Analysis", width='stretch'):
+                        run_ai_analysis(mode="quick")
 
         else:
             st.markdown("""
