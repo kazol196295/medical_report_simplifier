@@ -1,0 +1,107 @@
+{
+  "app.py": {
+    "mtime": 1784606786.5668185,
+    "ast_hash": "afc2db1a74effc38b3922d13fac6c5c2",
+    "semantic_hash": "afc2db1a74effc38b3922d13fac6c5c2"
+  },
+  "src/__init__.py": {
+    "mtime": 1784606786.597679,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "src/clinical_trials_api.py": {
+    "mtime": 1784606786.5986824,
+    "ast_hash": "f5f5f0b5eb38da651b75baf57c6dbeac",
+    "semantic_hash": "f5f5f0b5eb38da651b75baf57c6dbeac"
+  },
+  "src/langgraph_agent.py": {
+    "mtime": 1784606786.5986824,
+    "ast_hash": "3148e7db666db23c078b467d00ee23b0",
+    "semantic_hash": "3148e7db666db23c078b467d00ee23b0"
+  },
+  "src/ocr_tesseract.py": {
+    "mtime": 1784606786.5996735,
+    "ast_hash": "df09e55f091b5d6105b691000743c3dd",
+    "semantic_hash": "df09e55f091b5d6105b691000743c3dd"
+  },
+  "src/patient_profiler.py": {
+    "mtime": 1784606786.5996735,
+    "ast_hash": "eb1e29a01511da7f902687adff4bd1c5",
+    "semantic_hash": "eb1e29a01511da7f902687adff4bd1c5"
+  },
+  "src/prompts.py": {
+    "mtime": 1784606786.6003563,
+    "ast_hash": "9daade751130becafe898fe468826430",
+    "semantic_hash": "9daade751130becafe898fe468826430"
+  },
+  "src/rag_engine.py": {
+    "mtime": 1784606786.6003563,
+    "ast_hash": "1fc9063bcf43420ed6ea438b97375901",
+    "semantic_hash": "1fc9063bcf43420ed6ea438b97375901"
+  },
+  "src/tools.py": {
+    "mtime": 1784606786.6003563,
+    "ast_hash": "382f9505e3ff28e47a7645caf38b7cad",
+    "semantic_hash": "382f9505e3ff28e47a7645caf38b7cad"
+  },
+  "README.md": {
+    "mtime": 1784606786.5668185,
+    "ast_hash": "93a8c9a9c3cfa4ff5027fcacf5dbe4cd",
+    "semantic_hash": "93a8c9a9c3cfa4ff5027fcacf5dbe4cd"
+  },
+  "packages.txt": {
+    "mtime": 1784606786.5678155,
+    "ast_hash": "27efedc8d81fc4bc1dce8e0d6c282ffb",
+    "semantic_hash": "27efedc8d81fc4bc1dce8e0d6c282ffb"
+  },
+  "plan.md": {
+    "mtime": 1784606786.5678992,
+    "ast_hash": "54a23fd107bb602192260bf2727d5cd1",
+    "semantic_hash": "54a23fd107bb602192260bf2727d5cd1"
+  },
+  "requirements.txt": {
+    "mtime": 1784606786.5678992,
+    "ast_hash": "47dc940a6588cb9d99d988951c0c408f",
+    "semantic_hash": "47dc940a6588cb9d99d988951c0c408f"
+  },
+  "runtime.txt": {
+    "mtime": 1784606786.5678992,
+    "ast_hash": "94e1adf2411e3294aeda77defdf92e49",
+    "semantic_hash": "94e1adf2411e3294aeda77defdf92e49"
+  },
+  "sample 1.jpeg": {
+    "mtime": 1784606786.568897,
+    "ast_hash": "8eb3b08dbfad675b5bc6ae889d9df2de",
+    "semantic_hash": "8eb3b08dbfad675b5bc6ae889d9df2de"
+  },
+  "sample 2.png": {
+    "mtime": 1784606786.56994,
+    "ast_hash": "7a603f93b84e61b5f110a922aded9b50",
+    "semantic_hash": "7a603f93b84e61b5f110a922aded9b50"
+  },
+  "sample image/AHD-0425-PA-0007719_E-REPORTS_250427_2032@E.pdf_page_7.png": {
+    "mtime": 1784606786.5739193,
+    "ast_hash": "49a5bedc73b2aa1cedd136247f257739",
+    "semantic_hash": "49a5bedc73b2aa1cedd136247f257739"
+  },
+  "sample image/ChatGPT Image Jul 20, 2026, 09_17_42 AM.png": {
+    "mtime": 1784606786.5855331,
+    "ast_hash": "a7ec6e10725399ccfd8576ac83c2ed09",
+    "semantic_hash": "a7ec6e10725399ccfd8576ac83c2ed09"
+  },
+  "sample image/Medical-Reports-of-Patients.png": {
+    "mtime": 1784606786.5966809,
+    "ast_hash": "6581e9644d473570afe986474d19279d",
+    "semantic_hash": "6581e9644d473570afe986474d19279d"
+  },
+  "sample image/Screenshot 2026-03-03 001035.png": {
+    "mtime": 1784606786.597679,
+    "ast_hash": "a4574d9b5302a787442bb59ac8596b37",
+    "semantic_hash": "a4574d9b5302a787442bb59ac8596b37"
+  },
+  "sample image/qwen.png": {
+    "mtime": 1784517595.6264508,
+    "ast_hash": "a3bf7a30d3e26c64dedfedd7a5670ac0",
+    "semantic_hash": "a3bf7a30d3e26c64dedfedd7a5670ac0"
+  }
+}
