@@ -700,7 +700,7 @@ def _get_profile_llm():
         api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
         st.session_state.profile_llm = ChatGroq(
             api_key=api_key,
-            model_name="llama-3.3-70b-versatile",
+            model_name="llama-3.1-8b-instant",
             temperature=0.0,
             max_tokens=4096,
         )
